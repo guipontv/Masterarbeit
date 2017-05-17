@@ -1,7 +1,9 @@
 import fsk_lecim_phy
+import fsk_lecim_constants
 import numpy as np
 from math import ceil, floor
 from cmath import exp, pi
+import commpy.channelcoding.convcode as cc
 
 #PDU length in bytes
 def pdu_len_block(data_in):
@@ -18,13 +20,18 @@ def zero_padding_block(phy, data_in):
 	data_out = np.concatenate((data_in, np.zeros((npad, ),dtype = int)))
 	return data_out
 
+#zero padding remover
+def zero_padding_remover_block(phy, data_in):
+	npad = int((phy.nBlock*(fsk_lecim_constants.Npsdu/2))-(8*phy.phyPacketSize+6))
+	phy.npad = npad
+	return data_in[:-npad]
 #FEC
 def fec_block(data_in):
-	poly = np.zeros((6,),dtype=int)
+	poly = np.zeros((6,),dtype = int)
 	data_in = np.concatenate((data_in, np.zeros((6,),dtype = int)))
 	data_out = np.zeros((2*len(data_in)),dtype = int)
 	for i in range(len(data_in)):
-		data_out[2*i] = data_in[i]^poly[1]^poly[2]^poly[4]^poly[5]
+		data_out[2*i] =   data_in[i]^poly[1]^poly[2]^poly[4]^poly[5]
 		data_out[2*i+1] = data_in[i]^poly[0]^poly[1]^poly[2]^poly[5]
 		poly = np.insert(poly,0, data_in[i])
 		poly = np.delete(poly,6)
@@ -128,7 +135,7 @@ def demodulator_fsk_block(phy, data_in):
 		
 	return data_out
 
-#Demodulator P-FSK
+#demodulator P-FSK
 def demodulator_pfsk_block(phy, data_in):
 	a = np.zeros((len(data_in),2), dtype = complex)
 	data_out = np.zeros((int(len(data_in)/phy.sps),), dtype = int)
@@ -201,8 +208,12 @@ def PHR_analyser(phy,phr):
 		print 'Parity bit error'
 	phy.nBlock = int(ceil((8*phy.phyPacketSize+6)/(phy.npsdu/2.0)))
 
-
-	
-
+#Viterbi/ FEC decoder
+def fec_decoder_block(data_in):
+	memory = np.array([6])
+	g_matrix = np.array([[91,121]]) # G(D) = [1+D^2+D^3+D^5+D^6, 1+D+D^2+D^3+D^6]
+	trellis = cc.Trellis(memory, g_matrix)
+	data_out = cc.viterbi_decode(data_in, trellis, tb_depth = int(len(data_in)/2))
+	return data_out[:-6]
 
 

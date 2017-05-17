@@ -32,7 +32,6 @@ class physical_layer:
 	
 	def symbol_rate(self):
 		if self.Band169MHz:
-
 			if self.modulationIndex == 1:
 				R = 12500 #bit/s
 				print "Symbol rate is 12.5 kb/s"
