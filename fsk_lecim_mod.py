@@ -13,18 +13,15 @@ class fsk_lecim_modulator(fsk_lecim_phy.physical_layer):
         return self.modulate(PDU)
 
     def modulate(self, data_in):
-        print data_in
-        print self.PHR
         PHR = self.fec_encoder(self.PHR)
         PHR = self.interleaver(PHR, True)
-        
         PDU = self.zero_padding(data_in)
         PDU = self.fec_encoder(PDU)
         PDU = self.interleaver( PDU)
         PSDU = self.mux(self.SHR, PHR, PDU)
         PSDU = self.mapper(PSDU)
         PSDU = self.modulator(PSDU)
-        return PSDU
+        return [data_in, PSDU]
 
     #PDU length in bytes
     def pdu_len(self, data_in):
@@ -72,7 +69,6 @@ class fsk_lecim_modulator(fsk_lecim_phy.physical_layer):
 
     #MUX
     def mux(self, shr, phr, psdu):
-
         return np.concatenate((shr, phr, psdu))
  
     #mapper
