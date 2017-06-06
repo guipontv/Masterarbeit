@@ -14,14 +14,14 @@ class physical_layer:
 		# SHR & PHR generation
 		self.SHR = self.gen_SHR()
 		self.PHR = self.gen_PHR()
-		#interleave parameter
-		self.nphr = fsk_lecim_constants.Nphr
-		self.npsdu = fsk_lecim_constants.Npsdu
+		#interleaver parameter
+		self.nPhr = fsk_lecim_constants.nPhr
+		self.nPsdu = fsk_lecim_constants.nPsdu
 		self.lambdaPhr = fsk_lecim_constants.lambdaPhr
 		self.lambdaPsdu = fsk_lecim_constants.lambdaPsdu
-		self.nBlock = int(ceil((8*self.phyPacketSize+6)/(self.npsdu/2.0)))
+		self.nBlock = int(ceil((8*self.phyPacketSize+6)/(self.nPsdu/2.0)))
 		#zero padding
-		self.nPad = int((self.nBlock*(fsk_lecim_constants.Npsdu/2))-(8*phyPacketSize+6))
+		self.nPad = int((self.nBlock*(fsk_lecim_constants.nPsdu/2))-(8*phyPacketSize+6))
 		#modulation
 		self.pfsk = pfsk
 		self.sps  = sps
@@ -70,7 +70,7 @@ class physical_layer:
 
 	#PHR generator
 	def gen_PHR(self):
-		PHR = np.zeros((16,),dtype=int)
+		PHR = np.zeros((16, ), dtype=int)
 		if self.FCS:
 			PHR[12] = 1
 		else:
@@ -87,20 +87,3 @@ class physical_layer:
 			parity_bit = parity_bit^PHR[i]
 		PHR[13] = parity_bit
 		return PHR
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
