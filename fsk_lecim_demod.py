@@ -66,7 +66,10 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
                 delay = k
                 print delay
                 break
-        return self.early_late(a, delay)
+        if self.pfsk:
+            return self.early_late(a, delay) - self.sps 
+        else:
+            return self.early_late(a, delay)
 
     def early_late(self, a, delay):
         if delay == -1:
@@ -97,15 +100,17 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
                     print abs(sum1[0]), abs(sum1[1])
                     print '########################'
             print 'delay'
-            print delay
+            if self.pfsk:
+                print delay-self.sps
+            else:
+                print delay
             return delay
+
 
     #demodulator FSK correlator (non coherent)
     def demodulator_fsk(self, data_in):
         a = np.zeros((len(data_in),2), dtype=complex)
-        delay = -1
         sum0 = [0, 0]  
-        sum1 = [0, 0]
         Z = [0, 0]
         for i in range(len(data_in)):
             a[i][0] = data_in[i]*exp(1j*2*pi*self.freq_dev*i/(self.sps*self.symbol_rate))
@@ -116,6 +121,7 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
             print 'no signal detected, only noise'
             return data_out
         for k in range(len(data_out)-1):
+            sum0 = [0, 0]
             for p in range(self.sps):
                 sum0[0] += a[self.sps*k+p+delay][0]
                 sum0[1] += a[self.sps*k+p+delay][1]
@@ -127,25 +133,23 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
             else:
                 data_out[k] = 1
                 d =1
-            sum0 = [0, 0]
         return data_out
 
     #demodulator FSK correlator (coherent)
     def demodulator_fsk_coherent(self, data_in):
         a = np.zeros((len(data_in),2), dtype = complex)
-        sum0 = [0, 0]
-        sum1 = [0, 0]
         Z = [0, 0]
         d = 0
         for i in range(len(data_in)):
             a[i][0] = data_in[i]*exp(1j*2*pi*self.freq_dev*i/(self.sps*self.symbol_rate))
             a[i][1] = data_in[i]*exp(1j*-2*pi*self.freq_dev*i/(self.sps*self.symbol_rate))
         delay = self.signal_detector(a)
-        data_out = np.zeros((int((len(data_in)-delay + (delay % self.sps))/self.sps),), dtype = int)
+        data_out = np.zeros((int((len(data_in) - delay + (delay % self.sps))/self.sps),), dtype = int)
         if delay == -1:
             print 'no signal detected, only noise'
             return data_out
         for k in range(len(data_out)-1):
+            sum0 = [0, 0]
             for p in range(self.sps):
                 sum0[0] += a[self.sps*k+p+delay][0]
                 sum0[1] += a[self.sps*k+p+delay][1]
@@ -157,27 +161,28 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
             Z[1]= sum0[1].real #Z1
             if Z[0] - Z[1] >= 0: #Z0-Z1 Threshold 0
                 data_out[k] = 0
-                d = 0
             else:
                 data_out[k] = 1
-                d = 0
-            sum0 = [0, 0]
         return data_out
 
     #Demodulator P-FSK correlator (non coherent)
     def demodulator_pfsk(self, data_in):
         a = np.zeros((len(data_in),2), dtype = complex)
-        data_out = np.zeros((int(len(data_in)/self.sps),), dtype = int)
         sum0 = [0, 0]
         Z = [0, 0, 0, 0]
         delta = [0, 0]
         for i in range(len(data_in)):
             a[i][0] = data_in[i]*exp(1j*2*pi*self.freq_dev*i/(self.sps*self.symbol_rate))
             a[i][1] = data_in[i]*exp(1j*-2*pi*self.freq_dev*i/(self.sps*self.symbol_rate))
-        for k in range(int(len(data_out))):
+        delay = 0#self.signal_detector(a)
+        data_out = np.zeros((int((len(data_in) - delay + (delay % self.sps))/self.sps),), dtype=int)
+        if delay == -1:
+            print 'no signal detected, only noise'
+            return data_out
+        for k in range(len(data_out)-1):
             for p in range(self.sps):
-                sum0[0] += a[self.sps*k+p][0] 
-                sum0[1] += a[self.sps*k+p][1]
+                sum0[0] += a[self.sps*k+p+delay][0] 
+                sum0[1] += a[self.sps*k+p+delay][1]
             if (k%2) == 0:
                 Z[0]= abs(sum0[0])**2 #Z0(2k)
                 Z[1]= abs(sum0[1])**2 #Z1(2k)
@@ -205,7 +210,6 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
     #Demodulator P-FSK correlator (coherent)
     def demodulator_pfsk_coherent(self, data_in):
         a = np.zeros((len(data_in),2), dtype = complex)
-        data_out = np.zeros((int(len(data_in)/self.sps),), dtype = int)
         sum0 = [0, 0]
         Z = [0, 0, 0, 0]
         d = [0, 0]
@@ -213,10 +217,20 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
         for i in range(len(data_in)):
             a[i][0] = data_in[i]*exp(1j*2*pi*self.freq_dev*i/(self.sps*self.symbol_rate))
             a[i][1] = data_in[i]*exp(1j*-2*pi*self.freq_dev*i/(self.sps*self.symbol_rate))
-        for k in range(int(len(data_out))):
+        delay = self.signal_detector(a)
+        #delay = 0
+        print delay
+        print len(data_in)
+        print int((len(data_in) - delay + (delay % self.sps))/self.sps)
+        data_out = np.zeros((int((len(data_in) - delay + (delay % self.sps))/self.sps),), dtype=int)
+        print len(data_out)
+        if delay == -1:
+            print 'no signal detected, only noise'
+            return data_out
+        for k in range(len(data_out)-1):
             for p in range(self.sps):
-                sum0[0] += a[self.sps*k+p][0] 
-                sum0[1] += a[self.sps*k+p][1]
+                sum0[0] += a[self.sps*k+p+delay][0] 
+                sum0[1] += a[self.sps*k+p+delay][1]
             phioff = phase(sum0[0]*d[0]+sum0[1]*d[1])
             sum0[0] = sum0[0] * exp(-1j*phioff)
             sum0[1] = sum0[1] * exp(-1j*phioff)

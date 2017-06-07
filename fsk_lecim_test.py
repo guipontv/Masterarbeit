@@ -24,7 +24,7 @@ def assertData(data1, data2):
 	return 0
 
 if __name__ == '__main__':
-	pfsk = False
+	pfsk = True
 	index = 2.0
 	modulator = mod.fsk_lecim_modulator(sps=20, 
         modulationIndex=index, 
@@ -43,9 +43,9 @@ if __name__ == '__main__':
         dataWhitening=False,
         pfsk=pfsk)
 	
-	fading_factor = 1
-	noise_power = 1
-	delay = 798
+	fading_factor = -1
+	noise_power = 0
+	delay = 0
 
 	mod_data = modulator.modulate_random(modulator.phyPacketSize)
 
@@ -78,7 +78,7 @@ if __name__ == '__main__':
 	
 	bbrate = modulator.symbol_rate*modulator.sps
 
-	"""	
+	"""
 	#spectrum no noise
 	fig, ax = plt.subplots(3)
 	f, Pwelch = sig.welch(mod_data[1], bbrate / 1000, nperseg=2048)
@@ -98,7 +98,7 @@ if __name__ == '__main__':
 	ax[2].set_xlim([-2.2, 2.2])
 	ax[2].set_ylim([-2.2, 2.2])
 	ax[2].set_title('\nIQ')
-
+	
 	fig, ax = plt.subplots(1)
 	ax.plot(bb[0:240].real)
 	ax.set_ylim([-4,4])
@@ -113,5 +113,6 @@ if __name__ == '__main__':
 	ax.set_xlabel('Frequency / MHz')
 	ax.set_ylabel('Spectrum')
 	ax.set_title('Spectrum with noise')
-
-	plt.show()"""
+	
+	plt.show()
+	"""
