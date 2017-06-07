@@ -78,7 +78,7 @@ if __name__ == '__main__':
 	
 	bbrate = modulator.symbol_rate*modulator.sps
 
-	"""
+	
 	#spectrum no noise
 	fig, ax = plt.subplots(3)
 	f, Pwelch = sig.welch(mod_data[1], bbrate / 1000, nperseg=2048)
@@ -106,6 +106,7 @@ if __name__ == '__main__':
 	ax.set_xlabel('time / '+ str(1.0/bbrate*1000.0) + 's')
 	ax.set_ylabel('')
 	ax.set_title('\nTime signal with noise')
+	
 	#spectrum with noise
 	fig, ax = plt.subplots(1)
 	f, Pwelch = sig.welch(bb, bbrate / 1000, nperseg=2048)
@@ -115,4 +116,4 @@ if __name__ == '__main__':
 	ax.set_title('Spectrum with noise')
 	
 	plt.show()
-	"""
+	

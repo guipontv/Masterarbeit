@@ -1,6 +1,8 @@
 import fsk_lecim_constants
 import numpy as np
+
 from math import ceil
+
 class physical_layer:
 	def __init__(self, sps=10, modulationIndex=1.0, Band169MHz=False, phyLecimFskPreambleLength=4, FCS=False, dataWhitening=False, pfsk=False, phyPacketSize=1):
 		#SHR parameter
@@ -30,6 +32,7 @@ class physical_layer:
 		self.symbol_rate = self.symbol_rate()
 		self.freq_dev = self.freq_dev()
 	
+	#Compute symbol rate
 	def symbol_rate(self):
 		if self.Band169MHz:
 			if self.modulationIndex == 1:

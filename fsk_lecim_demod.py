@@ -1,13 +1,11 @@
 import numpy as np
 import fsk_lecim_constants
 import fsk_lecim_phy
+import commpy.channelcoding.convcode as cc # I use that library, so i don't need to implement the viterbi algorithm
 
 from math import ceil, floor, cos
 from cmath import exp, pi, phase
 from scipy import signal
-import commpy.channelcoding.convcode as cc
-
-
 
 class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
     def demodulate(self, data_in, phyPacketSize):
@@ -54,6 +52,7 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
         PDU = self.zero_padding_remover(PDU)
         return [PHR, PDU]
 
+    #Detect signal and give a first estimation of delay
     def signal_detector(self,a):
         delay = -1
         for k in range(len(a)-self.sps):
@@ -71,6 +70,7 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
         else:
             return self.early_late(a, delay)
 
+    #Compute a precise estimation of delay, with noisy channel the estimation the estimation error is acceptable 
     def early_late(self, a, delay):
         if delay == -1:
             return -1
@@ -174,7 +174,7 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
         for i in range(len(data_in)):
             a[i][0] = data_in[i]*exp(1j*2*pi*self.freq_dev*i/(self.sps*self.symbol_rate))
             a[i][1] = data_in[i]*exp(1j*-2*pi*self.freq_dev*i/(self.sps*self.symbol_rate))
-        delay = 0#self.signal_detector(a)
+        delay = self.signal_detector(a)
         data_out = np.zeros((int((len(data_in) - delay + (delay % self.sps))/self.sps),), dtype=int)
         if delay == -1:
             print 'no signal detected, only noise'
@@ -218,7 +218,6 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
             a[i][0] = data_in[i]*exp(1j*2*pi*self.freq_dev*i/(self.sps*self.symbol_rate))
             a[i][1] = data_in[i]*exp(1j*-2*pi*self.freq_dev*i/(self.sps*self.symbol_rate))
         delay = self.signal_detector(a)
-        #delay = 0
         print delay
         print len(data_in)
         print int((len(data_in) - delay + (delay % self.sps))/self.sps)
@@ -325,7 +324,8 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
         nPad = int((self.nBlock*(self.nPsdu/2.0))-(8*self.phyPacketSize+6))
         self.nPad = nPad
         return data_in[:-nPad]
-    #PLL 
+
+    #PLL : I don't use this software PLL
     def phase_loop(self, data_in):
         phi_ = np.zeros((len(data_in),), dtype = complex)
         phi = 0

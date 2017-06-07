@@ -39,7 +39,7 @@ class fsk_lecim_modulator(fsk_lecim_phy.physical_layer):
         data_out = np.concatenate((data_in, np.zeros((nPad, ), dtype=int)))
         return data_out
 
-    #FEC
+    #FEC : G0(x) = 1 + x^2 + x^3 + x^5 + x^6, G1(x) = 1 + x + x^2 + x^3 + x^6  
     def fec_encoder(self, data_in):
         poly = np.zeros((6, ), dtype = int)
         data_in = np.concatenate((data_in, np.zeros((6, ), dtype=int)))
@@ -51,12 +51,12 @@ class fsk_lecim_modulator(fsk_lecim_phy.physical_layer):
             poly = np.delete(poly, 6)
         return data_out
 
-    #interleave K    
+    #interleave K : compute the index to permute with   
     def interleave_k(self, k, nDepth, lambda_):
         a = int((((nDepth-1-k)%lambda_)*nDepth/float(lambda_))+floor((nDepth-1-k)/(float(lambda_))))
         return a    
 
-    #interleaver
+    #interleaver 
     def interleaver(self, data_in, phr = False):
         data_out = np.zeros((len(data_in), ), dtype=int)
         if(phr):
