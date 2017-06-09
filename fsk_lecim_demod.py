@@ -13,8 +13,8 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
             PPDU = self.demodulator_pfsk(data_in)
         else:
             PPDU = self.demodulator_fsk(data_in)
-
         PPDU = self.PPDU_analyser(PPDU)
+        PPDU[0] = self.despreading(PPDU[0])
         PPDU[0] = self.deinterleaver(PPDU[0], True)
         PPDU[0] = self.deinterleaver(PPDU[0], True)
         PHR = self.fec_decoder(PPDU[0])
@@ -24,6 +24,7 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
             print 'good PDU length'
             self.phyPacketSize = phyPacketSize
             self.nBlock = int(ceil((8*self.phyPacketSize+6)/(self.nPsdu/2.0)))
+        PPDU[1] = self.despreading(PPDU[1])
         PPDU[1] = self.deinterleaver(PPDU[1])
         PPDU[1] = self.data_dewhitening(PPDU[1])
         PPDU[1] = self.deinterleaver(PPDU[1])
@@ -38,6 +39,7 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
             PPDU = self.demodulator_fsk_coherent(data_in)
 
         PPDU = self.PPDU_analyser(PPDU)
+        PPDU[0] = self.despreading(PPDU[0])
         PPDU[0] = self.deinterleaver(PPDU[0], True)
         PPDU[0] = self.deinterleaver(PPDU[0], True)
         PHR = self.fec_decoder(PPDU[0])
@@ -47,6 +49,7 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
             print 'good PDU length'
             self.phyPacketSize = phyPacketSize
             self.nBlock = int(ceil((8*self.phyPacketSize+6)/(self.nPsdu/2.0)))
+        PPDU[1] = self.despreading(PPDU[1])
         PPDU[1] = self.deinterleaver(PPDU[1])
         PPDU[1] = self.data_dewhitening(PPDU[1])
         PPDU[1] = self.deinterleaver(PPDU[1])
@@ -289,6 +292,7 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
     def PPDU_analyser(self, data_in):
         SHRlength = -1
         SFDlength = 24
+        offset = 44
         for k in range(len(data_in)-SFDlength):
             if np.array_equal(self.SFD, data_in[k:k+SFDlength]):
                 print 'SFD detected'
@@ -296,7 +300,9 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
                 SHRlength = k + SFDlength
         if SHRlength == -1:
             SHRlength = (int(floor(self.phyLecimFskPreambleLength))+3)*8
-        return [data_in[SHRlength:SHRlength+44], data_in[SHRlength+44:]]
+        if self.phyLecimFskSpreading:
+            offset = offset * self.phyLecimFskSpreadingFactor
+        return [data_in[SHRlength:SHRlength+offset], data_in[SHRlength+offset:]]
 
     #PHR analyser
     def PHR_analyser(self):
@@ -318,6 +324,43 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
             print 'Parity bit error'
         self.phyPacketSize = pdu_len
         self.nBlock = int(ceil((8*self.phyPacketSize+6)/(self.nPsdu/2.0)))
+
+    #Despreading fundtion
+    def despreading(self, data_in):
+        if self.phyLecimFskSpreading:
+            factor = self.phyLecimFskSpreadingFactor
+            data_out = np.zeros((int(len(data_in)/float(factor)),),dtype = int)
+            if self.phyLecimFskSpreadingAlternating:
+                for i in range(len(data_out)):
+                    if np.array_equal(np.tile(fsk_lecim_constants.spreadingAlternating_0,factor/2), data_in[factor*i:factor*(i+1)]):
+                        data_out[i] = 0
+                    if np.array_equal(np.tile(fsk_lecim_constants.spreadingAlternating_1,factor/2), data_in[factor*i:factor*(i+1)]):
+                        data_out[i] = 1
+            else:
+                if factor <= 4:
+                    for i in range(len(data_out)):
+                        if np.array_equal(np.tile(fsk_lecim_constants.spreadingAlternating_0,factor/2), data_in[factor*i:factor*(i+1)]):
+                            data_out[i] = 0
+                        if np.array_equal(np.tile(fsk_lecim_constants.spreadingAlternating_1,factor/2), data_in[factor*i:factor*(i+1)]):
+                            data_out[i] = 1
+
+                if factor == 8:
+                    for i in range(len(data_out)):
+                        if np.array_equal(fsk_lecim_constants.spreadingNonAlternating8_0,data_in[factor*i:factor*(i+1)]):
+                            data_out[i] = 0
+                        if np.array_equal(fsk_lecim_constants.spreadingNonAlternating8_1,data_in[factor*i:factor*(i+1)]):
+                            data_out[i] = 1
+
+                if factor == 16:
+                    for i in range(len(data_in)):
+                        if np.array_equal(fsk_lecim_constants.spreadingNonAlternating16_0,data_in[factor*i:factor*(i+1)]):
+                            data_out[i] = 0
+                        if np.array_equal(fsk_lecim_constants.spreadingNonAlternating16_1,data_in[factor*i:factor*(i+1)]):
+                            data_out[i] = 1
+            return data_out
+        else:
+            return data_in
+
     #Data dewhitening
     def data_dewhitening(self, data_in):
         if self.dataWhitening:
@@ -331,6 +374,7 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
             return data_out
         else:
             return data_in
+
     #zero padding remover
     def zero_padding_remover(self, data_in):
         nPad = int((self.nBlock*(self.nPsdu/2.0))-(8*self.phyPacketSize+6))

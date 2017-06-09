@@ -33,6 +33,7 @@ if __name__ == '__main__':
         FCS=False, 
         dataWhitening=True, 
         pfsk=pfsk, 
+        phyLecimFskSpreading = True, phyLecimFskSpreadingAlternating = False, phyLecimFskSpreadingFactor = 2, 
         phyPacketSize=15)
 
 	demodulator = demod.fsk_lecim_demodulator(sps=20, 
@@ -41,7 +42,8 @@ if __name__ == '__main__':
         phyLecimFskPreambleLength=4, 
         FCS=False,
         dataWhitening=True,
-        pfsk=pfsk)
+        pfsk=pfsk,
+        phyLecimFskSpreading = True, phyLecimFskSpreadingAlternating = False, phyLecimFskSpreadingFactor = 2)
 	
 	fading_factor = 1
 	noise_power = 1
