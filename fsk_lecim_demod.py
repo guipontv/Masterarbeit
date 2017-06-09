@@ -65,10 +65,14 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
                 delay = k
                 print delay
                 break
+        delay = self.early_late(a, delay)
         if self.pfsk:
-            return self.early_late(a, delay) - self.sps 
+            if delay - self.sps < 0:
+                return 0
+            else:
+                return delay - self.sps 
         else:
-            return self.early_late(a, delay)
+            return delay
 
     #Compute a precise estimation of delay, with noisy channel the estimation the estimation error is acceptable 
     def early_late(self, a, delay):
@@ -92,13 +96,13 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
                     sum2[0] += a[k+p][0]
                     sum2[1] += a[k+p][1]
                 if (abs(abs(sum0[0])-abs(sum1[0])) < 2 and abs(sum2[0]) > abs(sum0[0]) and abs(sum2[0]) > abs(sum1[0]) and abs(sum2[0]) >= self.sps/2.0) or (abs(abs(sum0[1])-abs(sum1[1])) < 2 and abs(sum2[1]) > abs(sum0[1]) and abs(sum2[1]) > abs(sum1[1]) and abs(sum2[1]) >= self.sps/2.0):
-                    print '================='
+                    # print '================='
                     delay = k - delta
-                    print k - delta
-                    print abs(sum0[0]), abs(sum0[1])
-                    print abs(sum2[0]), abs(sum2[1])
-                    print abs(sum1[0]), abs(sum1[1])
-                    print '########################'
+                    # print k - delta
+                    # print abs(sum0[0]), abs(sum0[1])
+                    # print abs(sum2[0]), abs(sum2[1])
+                    # print abs(sum1[0]), abs(sum1[1])
+                    # print '########################'
             print 'delay'
             if self.pfsk:
                 print delay-self.sps
@@ -218,11 +222,7 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
             a[i][0] = data_in[i]*exp(1j*2*pi*self.freq_dev*i/(self.sps*self.symbol_rate))
             a[i][1] = data_in[i]*exp(1j*-2*pi*self.freq_dev*i/(self.sps*self.symbol_rate))
         delay = self.signal_detector(a)
-        print delay
-        print len(data_in)
-        print int((len(data_in) - delay + (delay % self.sps))/self.sps)
         data_out = np.zeros((int((len(data_in) - delay + (delay % self.sps))/self.sps),), dtype=int)
-        print len(data_out)
         if delay == -1:
             print 'no signal detected, only noise'
             return data_out
@@ -230,10 +230,10 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
             for p in range(self.sps):
                 sum0[0] += a[self.sps*k+p+delay][0] 
                 sum0[1] += a[self.sps*k+p+delay][1]
-            phioff = phase(sum0[0]*d[0]+sum0[1]*d[1])
-            sum0[0] = sum0[0] * exp(-1j*phioff)
-            sum0[1] = sum0[1] * exp(-1j*phioff)
-            
+            phioff0 = phase(sum0[0])
+            phioff1 = phase(sum0[1])
+            sum0[0] = sum0[0] * exp(-1j*phioff0)
+            sum0[1] = sum0[1] * exp(-1j*phioff1)
             if (k%2) == 0:
                 Z[0]= sum0[0].real #Z0(2k)
                 Z[1]= sum0[1].real #Z1(2k)
@@ -247,18 +247,14 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
                     data_out[k] = 0
                     if Z[0]-Z[1]>=0:
                         data_out[k-1] = 0
-                        d[0] = self.sps
                     else:
                         data_out[k-1] = 1
-                        d[1] = self.sps
                 else:
                     data_out[k] = 1
                     if Z[2]-Z[3]>=0:
                         data_out[k-1] = 0
-                        d[0] = self.sps
                     else:
                         data_out[k-1] = 1
-                        d[1] = self.sps
             sum0 = [0, 0]
         return data_out
 
@@ -293,6 +289,8 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
         SFDlength = 24
         for k in range(len(data_in)-SFDlength):
             if np.array_equal(self.SFD, data_in[k:k+SFDlength]):
+                print 'SFD detected'
+                print data_in[k:k+SFDlength]
                 SHRlength = k + SFDlength
         if SHRlength == -1:
             SHRlength = (int(floor(self.phyLecimFskPreambleLength))+3)*8

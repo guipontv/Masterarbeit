@@ -24,28 +24,28 @@ def assertData(data1, data2):
 	return 0
 
 if __name__ == '__main__':
-	pfsk = True
+	pfsk = False 
 	index = 2.0
 	modulator = mod.fsk_lecim_modulator(sps=20, 
         modulationIndex=index, 
         Band169MHz=False, 
-        phyLecimFskPreambleLength=32, 
+        phyLecimFskPreambleLength=4, 
         FCS=False, 
         dataWhitening=False, 
         pfsk=pfsk, 
-        phyPacketSize=16)
+        phyPacketSize=15)
 
 	demodulator = demod.fsk_lecim_demodulator(sps=20, 
         modulationIndex=index, 
         Band169MHz=False,
-        phyLecimFskPreambleLength=32, 
+        phyLecimFskPreambleLength=4, 
         FCS=False,
         dataWhitening=False,
         pfsk=pfsk)
 	
-	fading_factor = -1
-	noise_power = 0
-	delay = 0
+	fading_factor = 1
+	noise_power = 1
+	delay = 13
 
 	mod_data = modulator.modulate_random(modulator.phyPacketSize)
 
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 	ax[1].set_xlabel('time / '+ str(1.0/bbrate*1000.0) + 's')
 	ax[1].set_ylabel('')
 	ax[1].set_title('\nTime signal')
-	ax[2].plot(mod_data[1][0:10000].real, mod_data[1][0:10000].imag)
+	ax[2].plot(mod_data[1][:].real, mod_data[1][:].imag)
 	ax[2].set_xlim([-2.2, 2.2])
 	ax[2].set_ylim([-2.2, 2.2])
 	ax[2].set_title('\nIQ')
@@ -106,7 +106,7 @@ if __name__ == '__main__':
 	ax.set_xlabel('time / '+ str(1.0/bbrate*1000.0) + 's')
 	ax.set_ylabel('')
 	ax.set_title('\nTime signal with noise')
-	
+
 	#spectrum with noise
 	fig, ax = plt.subplots(1)
 	f, Pwelch = sig.welch(bb, bbrate / 1000, nperseg=2048)
