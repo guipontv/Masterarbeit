@@ -4,7 +4,17 @@ import numpy as np
 from math import ceil
 
 class physical_layer:
-	def __init__(self, sps=10, modulationIndex=1.0, Band169MHz=False, phyLecimFskPreambleLength=4, FCS=False, dataWhitening=False, pfsk=False, phyPacketSize=1):
+	def __init__(self, 
+		sps=10, 
+		modulationIndex=1.0, 
+		Band169MHz=False, 
+		phyLecimFskPreambleLength=4, 
+		FCS=False, 
+		dataWhitening=False, 
+		pfsk=False, 
+		phyLecimFskSpreading = False, phyLecimFskSpreadingAlternating = False, phyLecimFskSpreadingFactor = 2, 
+		phyPacketSize=1):
+	
 		#SHR parameter
 		self.preamble = fsk_lecim_constants.preamble	
 		self.SFD = fsk_lecim_constants.SFD
@@ -13,7 +23,7 @@ class physical_layer:
 		self.FCS = FCS
 		self.dataWhitening = dataWhitening
 		self.phyPacketSize = phyPacketSize if phyPacketSize <= fsk_lecim_constants.aMaxPhyPacketSize else fsk_lecim_constants.aMaxPhyPacketSize
-		# SHR & PHR generation
+		#SHR & PHR generation
 		self.SHR = self.gen_SHR()
 		self.PHR = self.gen_PHR()
 		#interleaver parameter
@@ -22,6 +32,10 @@ class physical_layer:
 		self.lambdaPhr = fsk_lecim_constants.lambdaPhr
 		self.lambdaPsdu = fsk_lecim_constants.lambdaPsdu
 		self.nBlock = int(ceil((8*self.phyPacketSize+6)/(self.nPsdu/2.0)))
+		#spreading
+		self.phyLecimFskSpreading = phyLecimFskSpreading
+		self.phyLecimFskSpreadingFactor = phyLecimFskSpreadingFactor
+		self.phyLecimFskSpreadingAlternating = phyLecimFskSpreadingAlternating
 		#zero padding
 		self.nPad = int((self.nBlock*(fsk_lecim_constants.nPsdu/2))-(8*phyPacketSize+6))
 		#modulation

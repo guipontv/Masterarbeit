@@ -19,6 +19,7 @@ class fsk_lecim_modulator(fsk_lecim_phy.physical_layer):
         PDU = self.zero_padding(data_in)
         PDU = self.fec_encoder(PDU)
         PDU = self.interleaver(PDU)
+        PDU = self.data_whitening(PDU)
         PDU = self.interleaver(PDU)
         PSDU = self.mux(self.SHR, PHR, PDU)
         PSDU = self.mapper(PSDU)
@@ -67,6 +68,53 @@ class fsk_lecim_modulator(fsk_lecim_phy.physical_layer):
                 for k in range(self.nPsdu):
                     data_out[m*self.nPsdu+self.interleave_k(k,self.nPsdu,self.lambdaPsdu)] = data_in[m*self.nPsdu+k]
         return data_out
+
+    #Data whitening
+    def data_whitening(self, data_in):
+        if self.dataWhitening:
+            data_out = np.zeros((len(data_in), ), dtype=int)
+            PN9 = np.ones((9, ), dtype=int)
+            for i in range(len(data_in)):
+                PN9n = PN9[3]^PN9[8]
+                poly = np.insert(PN9, 0, PN9n)
+                poly = np.delete(poly, 9)
+                data_out[i] = data_in[i]^PN9[0]
+            return data_out
+        else:
+            return data_in
+
+    #Spreading fundtion
+    def spreading(self, data_in):
+        if self.phyLecimFskSpreading:
+            data_out = np.array([], dtype=int)
+            if self.phyLecimFskSpreadingAlternating:
+                for i in range(len(data_in)):
+                    if data_in[i]==0:
+                        data_out = np.concatenate((data_out, np.tile(fsk_lecim_constants.spreadingAlternating_0,self.phyLecimFskSpreadingFactor/2)))
+                    else:
+                        data_out = np.concatenate((data_out, np.tile(fsk_lecim_constants.spreadingAlternating_1,self.phyLecimFskSpreadingFactor/2)))
+            else:
+                if self.phyLecimFskSpreadingFactor <= 4:
+                    for i in range(len(data_in)):
+                        if data_in[i]==0:
+                            data_out = np.concatenate((data_out, np.tile(fsk_lecim_constants.spreadingAlternating_1,self.phyLecimFskSpreadingFactor/2)))
+                        else:
+                            data_out = np.concatenate((data_out, np.tile(fsk_lecim_constants.spreadingAlternating_0,self.phyLecimFskSpreadingFactor/2)))
+                if self.phyLecimFskSpreadingFactor == 8:
+                    for i in range(len(data_in)):
+                        if data_in[i]==0:
+                            data_out = np.concatenate((data_out, fsk_lecim_constants.spreadingNonAlternating8_0))
+                        else:
+                            data_out = np.concatenate((data_out, fsk_lecim_constants.spreadingNonAlternating8_1))
+                if self.phyLecimFskSpreadingFactor == 16:
+                    for i in range(len(data_in)):
+                        if data_in[i]==0:
+                            data_out = np.concatenate((data_out, fsk_lecim_constants.spreadingNonAlternating16_0))
+                        else:
+                            data_out = np.concatenate((data_out,fsk_lecim_constants.spreadingNonAlternating16_1))
+            return data_out
+        else:
+            return data_in
 
     #MUX
     def mux(self, shr, phr, psdu):

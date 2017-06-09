@@ -25,6 +25,7 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
             self.phyPacketSize = phyPacketSize
             self.nBlock = int(ceil((8*self.phyPacketSize+6)/(self.nPsdu/2.0)))
         PPDU[1] = self.deinterleaver(PPDU[1])
+        PPDU[1] = self.data_dewhitening(PPDU[1])
         PPDU[1] = self.deinterleaver(PPDU[1])
         PDU = self.fec_decoder(PPDU[1])
         PDU = self.zero_padding_remover(PDU)
@@ -47,6 +48,7 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
             self.phyPacketSize = phyPacketSize
             self.nBlock = int(ceil((8*self.phyPacketSize+6)/(self.nPsdu/2.0)))
         PPDU[1] = self.deinterleaver(PPDU[1])
+        PPDU[1] = self.data_dewhitening(PPDU[1])
         PPDU[1] = self.deinterleaver(PPDU[1])
         PDU = self.fec_decoder(PPDU[1])
         PDU = self.zero_padding_remover(PDU)
@@ -316,7 +318,19 @@ class fsk_lecim_demodulator(fsk_lecim_phy.physical_layer):
             print 'Parity bit error'
         self.phyPacketSize = pdu_len
         self.nBlock = int(ceil((8*self.phyPacketSize+6)/(self.nPsdu/2.0)))
-
+    #Data dewhitening
+    def data_dewhitening(self, data_in):
+        if self.dataWhitening:
+            data_out = np.zeros((len(data_in), ), dtype=int)
+            PN9 = np.ones((9, ), dtype=int)
+            for i in range(len(data_in)):
+                PN9n = PN9[3]^PN9[8]
+                poly = np.insert(PN9, 0, PN9n)
+                poly = np.delete(poly, 9)
+                data_out[i] = data_in[i]^PN9[0]
+            return data_out
+        else:
+            return data_in
     #zero padding remover
     def zero_padding_remover(self, data_in):
         nPad = int((self.nBlock*(self.nPsdu/2.0))-(8*self.phyPacketSize+6))

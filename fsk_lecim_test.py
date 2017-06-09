@@ -31,7 +31,7 @@ if __name__ == '__main__':
         Band169MHz=False, 
         phyLecimFskPreambleLength=4, 
         FCS=False, 
-        dataWhitening=False, 
+        dataWhitening=True, 
         pfsk=pfsk, 
         phyPacketSize=15)
 
@@ -40,7 +40,7 @@ if __name__ == '__main__':
         Band169MHz=False,
         phyLecimFskPreambleLength=4, 
         FCS=False,
-        dataWhitening=False,
+        dataWhitening=True,
         pfsk=pfsk)
 	
 	fading_factor = 1
